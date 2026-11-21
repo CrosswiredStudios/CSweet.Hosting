@@ -1,0 +1,51 @@
+name: csweet-hosting
+services:
+  provisioner:
+    image: ${HOSTING_IMAGE:?Select a tested Hosting release}
+    pull_policy: never
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777
+    ports:
+      - "127.0.0.1:${HOSTING_API_PORT:-8198}:8080"
+    networks: [api]
+    environment:
+      HQ_IMAGE: ${HQ_IMAGE:?Set the Headquarters image digest}
+      POOL_ID: ${HOSTING_POOL_ID:-nas-dev}
+      TEMPLATE_NAME: ${HOSTING_TEMPLATE_NAME:?Set the NAS template name}
+      TRUENAS_URL: ${TRUENAS_URL:?Set the NAS WSS URL}
+      NAS_MEDIA_PATH: ${NAS_MEDIA_PATH:?Set the NAS media path}
+      CF_ACCOUNT_ID: ${HOSTING_CF_ACCOUNT_ID:?Set the Cloudflare account ID}
+      CF_ZONE_ID: ${HOSTING_CF_ZONE_ID:?Set the csweet.app zone ID}
+    secrets: [service_key, nas_ca, nas_key, cf_token]
+    volumes:
+      - state:/state
+      - type: bind
+        source: ${MAC_MEDIA_PATH:?Mount the NAS media share}
+        target: /media/csweet
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "--max-time", "3", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+networks:
+  api:
+    name: csweet-hosting-api
+volumes:
+  state:
+    # Reuse the original Market overlay's state when upgrading that installation.
+    name: ${HOSTING_STATE_VOLUME:-csweet-market_hosting-state}
+secrets:
+  service_key:
+    file: ./secrets/hosting-service-key.txt
+  nas_ca:
+    file: ./secrets/hosting-nas-ca.pem
+  nas_key:
+    file: ./secrets/hosting-nas-key.txt
+  cf_token:
+    file: ./secrets/hosting-cloudflare-token.txt

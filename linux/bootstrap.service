@@ -1,0 +1,15 @@
+[Unit]
+Description=Install the purchased C-Sweet Headquarters
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/csweet-hosting/bootstrap.sh
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

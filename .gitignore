@@ -399,3 +399,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Local operator settings and saved API test requests
+/private/
+/secrets/
+/hosting.env
+/hosting-test-order.json
