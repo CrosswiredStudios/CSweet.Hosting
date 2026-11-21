@@ -22,7 +22,7 @@ internal static class Endpoints
             }
             await next(ctx);
         });
-        app.MapGet("/health", () => Results.Ok(new { status = "up" }));
+        app.MapGet("/health", () => Results.Ok(new { status = "up", version = Environment.GetEnvironmentVariable("HOSTING_RELEASE_VERSION") }));
         app.MapPut("/v1/deployments/{order}", Put);
         app.MapDelete("/v1/deployments/{order}", Delete);
     }

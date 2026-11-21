@@ -43,7 +43,7 @@ compose() {
   local release=$1
   shift
   # An image ID also makes rollback independent of mutable local Docker tags.
-  HOSTING_IMAGE="$(cat "$root/releases/$release/image-id")" docker compose \
+  HOSTING_RELEASE_VERSION="$release" HOSTING_IMAGE="$(cat "$root/releases/$release/image-id")" docker compose \
     --project-directory "$root" --env-file "$root/hosting.env" -p csweet-hosting \
     -f "$root/releases/$release/compose.hosting.yml" "$@"
 }
@@ -77,4 +77,4 @@ if ! activate "$version"; then
 fi
 printf '%s\n' "$version" > "$root/current-version.next"
 mv "$root/current-version.next" "$root/current-version"
-echo "Hosting $version is serving the authenticated API on the Mac Studio."
+echo "Hosting $version is serving the authenticated API on $(hostname)."

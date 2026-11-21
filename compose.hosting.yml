@@ -13,6 +13,7 @@ services:
       - "127.0.0.1:${HOSTING_API_PORT:-8198}:8080"
     networks: [api]
     environment:
+      HOSTING_RELEASE_VERSION: ${HOSTING_RELEASE_VERSION:?Select a Hosting release version}
       HQ_IMAGE: ${HQ_IMAGE:?Set the Headquarters image digest}
       POOL_ID: ${HOSTING_POOL_ID:-nas-dev}
       TEMPLATE_NAME: ${HOSTING_TEMPLATE_NAME:?Set the NAS template name}

@@ -27,7 +27,8 @@ if ($Action -eq 'Health') {
     if ($health.StatusCode -ne 200 -or ($health.Content | ConvertFrom-Json).status -ne 'up') { throw 'Health check failed.' }
     $auth = CallApi PUT '/v1/deployments/00000000-0000-0000-0000-000000000001' '{}'
     if ($auth.StatusCode -ne 400) { throw "Authenticated API check returned HTTP $($auth.StatusCode)." }
-    Write-Output "Hosting is healthy. The API accepted the operator credential at $base."
+    $version = ($health.Content | ConvertFrom-Json).version
+    Write-Output "Hosting $version is healthy. The API accepted the operator credential at $base."
     return
 }
 
