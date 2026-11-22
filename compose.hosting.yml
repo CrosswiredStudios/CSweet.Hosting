@@ -18,6 +18,7 @@ services:
       POOL_ID: ${HOSTING_POOL_ID:-nas-dev}
       TEMPLATE_NAME: ${HOSTING_TEMPLATE_NAME:?Set the NAS template name}
       TRUENAS_URL: ${TRUENAS_URL:?Set the NAS WSS URL}
+      TRUENAS_USERNAME: ${TRUENAS_USERNAME:-csweet_hosting}
       NAS_MEDIA_PATH: ${NAS_MEDIA_PATH:?Set the NAS media path}
       CF_ACCOUNT_ID: ${HOSTING_CF_ACCOUNT_ID:?Set the Cloudflare account ID}
       CF_ZONE_ID: ${HOSTING_CF_ZONE_ID:?Set the csweet.app zone ID}

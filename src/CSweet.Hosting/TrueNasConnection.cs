@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace CSweet.Hosting;
 
-internal sealed record NasSettings(Uri Url, string CaFile, string ApiKey, string NasMedia, string Media)
+internal sealed record NasSettings(Uri Url, string CaFile, string Username, string ApiKey, string NasMedia, string Media)
 {
     public static NasSettings Load(IConfiguration cfg)
     {
@@ -13,7 +13,7 @@ internal sealed record NasSettings(Uri Url, string CaFile, string ApiKey, string
         var media = Config.Required(cfg, "NAS_MEDIA_PATH").TrimEnd('/');
         if (url.Scheme != "wss" || !media.StartsWith("/mnt/", StringComparison.Ordinal) || media.Split('/').Contains(".."))
             throw new InvalidOperationException("Set a WSS NAS endpoint and an absolute /mnt/ media path.");
-        return new(url, "/run/secrets/nas_ca", Config.Secret("nas_key"), media, "/media/csweet");
+        return new(url, "/run/secrets/nas_ca", cfg["TRUENAS_USERNAME"] ?? "csweet_hosting", Config.Secret("nas_key"), media, "/media/csweet");
     }
 }
 
@@ -38,7 +38,16 @@ internal sealed class TrueNasConnection(NasSettings settings)
         using var socket = new ClientWebSocket();
         await socket.ConnectAsync(settings.Url, transport, ct);
         var rpc = new NasRpc(socket);
-        if (!(await rpc.CallAsync("auth.login_with_api_key", ct, settings.ApiKey)).GetBoolean())
+        var login = await rpc.CallAsync("auth.login_ex", ct, new
+        {
+            mechanism = "API_KEY_PLAIN",
+            username = settings.Username,
+            api_key = settings.ApiKey,
+            login_options = new { user_info = false }
+        });
+        if (login.ValueKind != JsonValueKind.Object ||
+            !login.TryGetProperty("response_type", out var response) ||
+            !response.ValueEquals("SUCCESS"))
             throw new InvalidOperationException("TrueNAS authentication failed");
         return await action(rpc, ct);
     }
