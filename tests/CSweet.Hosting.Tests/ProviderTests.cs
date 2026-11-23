@@ -98,7 +98,7 @@ public class ProviderTests
     public void Private_image_seed_selects_a_local_tag_bound_to_the_purchased_digest()
     {
         var digest = new string('a', 64);
-        var release = "ghcr.io/crosswiredstudios/csweet-headquarters@sha256:" + digest;
+        var release = "ghcr.io/crosswiredstudios/csweet-headquarters-hosted@sha256:" + digest;
         var guest = new GuestBootstrap("id", "buyer", "hq-test.csweet.app", release, "proof", "tenant-token");
         var data = JsonSerializer.Deserialize<JsonElement>(SeedMedia.UserData(guest).Split('\n', 2)[1]);
         var files = data.GetProperty("write_files").EnumerateArray().ToArray();

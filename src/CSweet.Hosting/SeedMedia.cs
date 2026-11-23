@@ -9,7 +9,7 @@ internal sealed class SeedMedia(string media)
 
     internal static string? LocalImageTag(string release)
     {
-        const string prefix = "ghcr.io/crosswiredstudios/csweet-headquarters@sha256:";
+        const string prefix = "ghcr.io/crosswiredstudios/csweet-headquarters-hosted@sha256:";
         if (!release.StartsWith(prefix, StringComparison.Ordinal)) return null;
         var digest = release[prefix.Length..];
         if (digest.Length != 64 || !digest.All(c => char.IsAsciiHexDigitLower(c)))

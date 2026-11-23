@@ -7,7 +7,7 @@ if [[ $# == 2 ]]; then
   release=$1
   tag=$2
   digest=${release##*@sha256:}
-  [[ "$digest" =~ ^[0-9a-f]{64}$ && "$release" == "ghcr.io/crosswiredstudios/csweet-headquarters@sha256:$digest" && "$tag" == "csweet-headquarters:sha256-$digest" ]]
+  [[ "$digest" =~ ^[0-9a-f]{64}$ && "$release" == "ghcr.io/crosswiredstudios/csweet-headquarters-hosted@sha256:$digest" && "$tag" == "csweet-headquarters:sha256-$digest" ]]
   root=${HQ_IMAGE_CACHE:-/state/headquarters-images}
   mkdir -p "$root"
   dir="$root/$digest"

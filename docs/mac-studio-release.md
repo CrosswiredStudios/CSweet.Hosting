@@ -12,7 +12,7 @@ Hosting runs as its own Docker Compose project, `csweet-hosting`. It listens on 
 
 ## Private Headquarters images
 
-Set `HQ_IMAGE` to the immutable `ghcr.io/crosswiredstudios/csweet-headquarters@sha256:…` reference in the successful Linux Headquarters workflow summary. Recreate the provisioner with the updated configuration to select this release for new orders. Accepted orders keep their original digest.
+Set `HQ_IMAGE` to the immutable `ghcr.io/crosswiredstudios/csweet-headquarters-hosted@sha256:…` reference in the successful Linux Headquarters workflow summary. Recreate the provisioner with the updated configuration to select this release for new orders. Accepted orders keep their original digest.
 
 Put a containers-auth JSON file containing only the `ghcr.io` read credential at `$HOME/csweet-hosting/registry/auth.json`. The standalone Compose project mounts this directory read-only. For a Market overlay, mount the same directory at `/run/hosting-registry:ro`. For example, starting with a GitHub username in `GHCR_USER` and a private file containing a token with package read access in `GHCR_TOKEN_FILE`:
 
