@@ -42,7 +42,7 @@ internal sealed class DeploymentWorker(DeploymentStore store, IServiceProvider s
                 if (await provider.RemoveAsync(allocation, ct))
                 {
                     await ingress.RemoveAsync(row.Name, row.Host, ct);
-                    store.Transition(id, "retiring", "retired");
+                    store.FinishRetirement(id);
                 }
                 return;
             case "pending":

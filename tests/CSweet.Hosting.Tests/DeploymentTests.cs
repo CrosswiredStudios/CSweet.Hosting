@@ -109,6 +109,11 @@ public class DeploymentTests
             Assert.Equal(HttpStatusCode.Accepted, (await market.DeleteAsync(path)).StatusCode);
             await reconciler.ReconcileAsync(id, default);
             Assert.True(original.Removed);
+            Assert.Null(store.Find(id));
+            var neverCreated = Guid.NewGuid();
+            var secondPath = $"/v1/deployments/{neverCreated}";
+            Assert.Equal(HttpStatusCode.NoContent, (await market.DeleteAsync(secondPath)).StatusCode);
+            Assert.Equal(HttpStatusCode.Gone, (await market.PutAsJsonAsync(secondPath, request with { orderId = neverCreated })).StatusCode);
             Assert.Equal(HttpStatusCode.NoContent, (await market.DeleteAsync(path)).StatusCode);
             Assert.Equal(HttpStatusCode.Gone, (await market.PutAsJsonAsync(path, request)).StatusCode);
         }
@@ -132,6 +137,7 @@ public class DeploymentTests
             sql.ExecuteNonQuery();
             var purchase = new Purchase(id, "maya", DateTimeOffset.Parse("2026-11-20T10:00:00+00:00"), 0, 0, 0);
             var row = store.Accept(purchase, new("future", "new", "new"));
+            Assert.NotNull(row);
             Assert.Equal(purchase, row.Purchase);
             Assert.Equal("hqexisting", row.Name);
             Assert.Equal("nas", row.Pool);

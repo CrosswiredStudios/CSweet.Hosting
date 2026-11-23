@@ -40,6 +40,7 @@ internal static class Endpoints
         if (request.LinkedOffices + request.StandardOffices + request.TeamOffices != 0)
             return Results.UnprocessableEntity("This pilot provisions Headquarters only");
         var row = store.Accept(request, target);
+        if (row is null) return Results.StatusCode(410);
         if (row.Purchase != request) return Results.Conflict();
         if (row.Phase is "retired" or "retiring") return Results.StatusCode(410);
         bool ready = row.Phase == "ready";
@@ -50,11 +51,8 @@ internal static class Endpoints
 
     private static IResult Delete(Guid order, DeploymentStore store, DeploymentWorker worker)
     {
-        var row = store.Find(order);
-        if (row is null) return Results.NotFound();
-        if (row.Phase == "retired") return Results.NoContent();
-        if (row.Phase != "retiring" && !store.Transition(order, row.Phase, "retiring"))
-            return Results.Conflict();
+        if (order == Guid.Empty) return Results.BadRequest();
+        if (!store.BeginRetirement(order)) return Results.NoContent();
         worker.Wake();
         return Results.Accepted();
     }
