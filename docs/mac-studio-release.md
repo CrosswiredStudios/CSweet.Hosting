@@ -10,6 +10,30 @@ Hosting runs as its own Docker Compose project, `csweet-hosting`. It listens on 
 4. In `secrets/`, place `hosting-nas-ca.pem`, `hosting-nas-key.txt`, and `hosting-cloudflare-token.txt` as described in the [TrueNAS setup guide](../README.md). Add a strong random bearer key in `hosting-service-key.txt`. For an existing Market pilot use its current service key. Each file must be readable by the container's UID 10001. On Docker Desktop, one option is mode 0444 on these individually mounted files beneath owner-only directories on the Mac. Keep the keys out of GitHub Actions. The deploy job transfers the application artifact only.
 5. If migrating an existing Market-overlay provisioner, stop **only** that service with the original Compose command (`lab stop provisioner`) before first deployment. Set `HOSTING_STATE_VOLUME` to its existing Docker volume. The default is `csweet-market_hosting-state`. Set `HOSTING_POOL_ID` and the NAS settings to the original values so pending orders can resume. New standalone installations can use that same default volume name. Ensure Docker Desktop can read the mounted media share and the container can write to it.
 
+## Private Headquarters images
+
+Set `HQ_IMAGE` to the immutable `ghcr.io/crosswiredstudios/csweet-headquarters@sha256:…` reference in the successful Linux Headquarters workflow summary. Recreate the provisioner with the updated configuration to select this release for new orders. Accepted orders keep their original digest.
+
+Put a containers-auth JSON file containing only the `ghcr.io` read credential at `$HOME/csweet-hosting/registry/auth.json`. The standalone Compose project mounts this directory read-only. For a Market overlay, mount the same directory at `/run/hosting-registry:ro`. For example, starting with a GitHub username in `GHCR_USER` and a private file containing a token with package read access in `GHCR_TOKEN_FILE`:
+
+```sh
+root="${HOSTING_DEPLOY_DIR:-$HOME/csweet-hosting}"
+mkdir -p "$root/registry"
+chmod 700 "$root"
+(
+  umask 077
+  tmp=$(mktemp "$root/registry/.auth-XXXXXXXX")
+  trap 'rm -f "$tmp"' EXIT
+  jq -n --arg user "$GHCR_USER" --rawfile token "$GHCR_TOKEN_FILE" \
+    '{auths:{"ghcr.io":{auth:(($user + ":" + ($token | rtrimstr("\n") | rtrimstr("\r"))) | @base64)}}}' > "$tmp"
+  chmod 444 "$tmp"
+  mv "$tmp" "$root/registry/auth.json"
+)
+chmod 755 "$root/registry"
+```
+
+The provisioner caches verified amd64 archives by digest under `/state/headquarters-images`. Each private seed ISO includes the pinned archive and its checksum. The VM loads the archive locally and records the original registry digest in its readiness proof. Only the Mac needs the registry credential. Guest administrators can inspect the image installed on their VM.
+
 ## Publish a version
 
 From the Hosting checkout on the Mac run `bash deploy/install-updater.sh` once. The user's LaunchAgent checks the repository's latest published release immediately and every three minutes. It verifies each downloaded asset against GitHub's SHA-256 digest, loads the ARM64 image and starts the service. Check `$HOME/csweet-hosting/updater.log` for the result. The logged-in user, Docker Desktop and the NAS mount must be available.

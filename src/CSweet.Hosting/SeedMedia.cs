@@ -7,11 +7,23 @@ internal sealed class SeedMedia(string media)
 {
     public void Remove(string name) => File.Delete(Path.Combine(media, name + ".iso"));
 
+    internal static string? LocalImageTag(string release)
+    {
+        const string prefix = "ghcr.io/crosswiredstudios/csweet-headquarters@sha256:";
+        if (!release.StartsWith(prefix, StringComparison.Ordinal)) return null;
+        var digest = release[prefix.Length..];
+        if (digest.Length != 64 || !digest.All(c => char.IsAsciiHexDigitLower(c)))
+            throw new InvalidOperationException("Invalid Headquarters digest");
+        return "csweet-headquarters:sha256-" + digest;
+    }
+
     internal static string UserData(GuestBootstrap guest)
     {
         static object FileEntry(string path, byte[] data, string permissions = "0600") =>
             new { path, permissions, encoding = "b64", content = Convert.ToBase64String(data) };
         List<object> files = [FileEntry("/etc/csweet-hosting/deployment.json", JsonSerializer.SerializeToUtf8Bytes(guest, Wire.Json))];
+        if (LocalImageTag(guest.Release) is { } tag)
+            files.Add(FileEntry("/opt/csweet-hosting/local-image", System.Text.Encoding.ASCII.GetBytes(tag)));
         foreach (var name in new[] { "bootstrap.py", "bootstrap.sh", "bootstrap.service" })
         {
             using var stream = typeof(SeedMedia).Assembly.GetManifestResourceStream("linux." + name)
@@ -36,9 +48,13 @@ internal sealed class SeedMedia(string media)
             await File.WriteAllTextAsync(Path.Combine(scratch.FullName, "meta-data"), JsonSerializer.Serialize(metadata), ct);
             await File.WriteAllTextAsync(Path.Combine(scratch.FullName, "user-data"), UserData(guest), ct);
             // Stream ISO bytes directly into a private sibling file so rename is atomic on the mounted share.
-            var start = new ProcessStartInfo("genisoimage") { WorkingDirectory = scratch.FullName, RedirectStandardOutput = true };
-            foreach (var arg in new[] { "-quiet", "-volid", "cidata", "-joliet", "-rock", "meta-data", "user-data" })
-                start.ArgumentList.Add(arg);
+            var start = new ProcessStartInfo("/bin/bash") { WorkingDirectory = scratch.FullName, RedirectStandardOutput = true };
+            start.ArgumentList.Add(Path.Combine(AppContext.BaseDirectory, "create-seed.sh"));
+            if (LocalImageTag(guest.Release) is { } tag)
+            {
+                start.ArgumentList.Add(guest.Release);
+                start.ArgumentList.Add(tag);
+            }
             using (var output = new FileStream(temporaryIso, new FileStreamOptions
             {
                 Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None,
@@ -55,7 +71,7 @@ internal sealed class SeedMedia(string media)
                 }
                 finally
                 {
-                    if (!process.HasExited) { process.Kill(); await process.WaitForExitAsync(CancellationToken.None); }
+                    if (!process.HasExited) { process.Kill(entireProcessTree: true); await process.WaitForExitAsync(CancellationToken.None); }
                 }
             }
             File.Move(temporaryIso, Path.Combine(media, name + ".iso"), overwrite: true);
