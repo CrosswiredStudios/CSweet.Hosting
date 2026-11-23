@@ -38,6 +38,7 @@ Naomi can start by opening the existing Market deployment folder on the Mac, run
 HOSTING_CHECKOUT=../CSweet.Hosting
 HQ_IMAGE=ghcr.io/YOUR-ORG/csweet-headquarters@sha256:REPLACE_WITH_DIGEST
 TRUENAS_URL=wss://nas.example.internal/api/current
+TRUENAS_USERNAME=csweet_hosting
 HOSTING_TEMPLATE_NAME=csweet_ubuntu_2404_v1
 NAS_MEDIA_PATH=/mnt/tank/csweet-lab/media
 MAC_MEDIA_PATH=/Volumes/csweet-media
