@@ -25,7 +25,10 @@ internal sealed class DeploymentStore : IDisposable
             cmd.CommandText = """
                 CREATE TABLE IF NOT EXISTS deployments (
                     id TEXT PRIMARY KEY, request TEXT NOT NULL, provider TEXT NOT NULL, template TEXT NOT NULL,
-                    release TEXT NOT NULL, name TEXT NOT NULL UNIQUE, proof_key TEXT NOT NULL, phase TEXT NOT NULL)
+                    release TEXT NOT NULL, name TEXT NOT NULL UNIQUE, proof_key TEXT NOT NULL, phase TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS retired_orders (id TEXT PRIMARY KEY);
+                INSERT OR IGNORE INTO retired_orders SELECT id FROM deployments WHERE phase IN ('retiring','retired');
+                DELETE FROM deployments WHERE phase='retired';
                 """;
             cmd.ExecuteNonQuery();
         }
@@ -39,13 +42,14 @@ internal sealed class DeploymentStore : IDisposable
         return db;
     }
 
-    public Deployment Accept(Purchase purchase, ReleaseTarget target)
+    public Deployment? Accept(Purchase purchase, ReleaseTarget target)
     {
         using var db = Open();
         using var cmd = db.CreateCommand();
         cmd.CommandText = """
             INSERT INTO deployments(id,request,provider,template,release,name,proof_key,phase)
-            VALUES($id,$request,$pool,$template,$release,$name,$key,'pending') ON CONFLICT(id) DO NOTHING
+            SELECT $id,$request,$pool,$template,$release,$name,$key,'pending'
+            WHERE NOT EXISTS (SELECT 1 FROM retired_orders WHERE id=$id) ON CONFLICT(id) DO NOTHING
             """;
         cmd.Parameters.AddWithValue("$id", purchase.OrderId.ToString());
         cmd.Parameters.AddWithValue("$request", JsonSerializer.Serialize(purchase, Wire.Json));
@@ -55,7 +59,33 @@ internal sealed class DeploymentStore : IDisposable
         cmd.Parameters.AddWithValue("$name", $"hq{Guid.NewGuid():N}");
         cmd.Parameters.AddWithValue("$key", Wire.RandomHex(32));
         cmd.ExecuteNonQuery();
-        return Find(purchase.OrderId)!;
+        return Find(purchase.OrderId);
+    }
+
+    // A cancellation can arrive before the first (or retried) provisioning request.
+    // Keep only its order ID once removal succeeds so that order can never create a VM again.
+    public bool BeginRetirement(Guid order)
+    {
+        using var db = Open();
+        using var tx = db.BeginTransaction();
+        using var cmd = db.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.Parameters.AddWithValue("$id", order.ToString());
+        cmd.CommandText = "INSERT OR IGNORE INTO retired_orders VALUES ($id)";
+        cmd.ExecuteNonQuery();
+        cmd.CommandText = "UPDATE deployments SET phase='retiring' WHERE id=$id";
+        var workRemains = cmd.ExecuteNonQuery() != 0;
+        tx.Commit();
+        return workRemains;
+    }
+
+    public void FinishRetirement(Guid order)
+    {
+        using var db = Open();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "DELETE FROM deployments WHERE id=$id AND phase='retiring' AND id IN (SELECT id FROM retired_orders)";
+        cmd.Parameters.AddWithValue("$id", order.ToString());
+        cmd.ExecuteNonQuery();
     }
 
     public Deployment? Find(Guid order)

@@ -55,8 +55,15 @@ internal sealed class CloudflareIngress(HttpClient http, string account, string 
     public async Task RemoveAsync(string name, string host, CancellationToken ct)
     {
         var id = await Tunnel(name, ct);
-        if (id == null) return;
         var records = await Call(HttpMethod.Get, $"{dns}?name={host}", ct);
+        if (id == null)
+        {
+            if (records.EnumerateArray().Any(r => r.GetProperty("name").GetString() == host))
+                throw new InvalidOperationException("Workspace DNS still exists without its managed tunnel");
+            return;
+        }
+        if (records.EnumerateArray().Any(r => !Matches(r, host, $"{id}.cfargotunnel.com")))
+            throw new InvalidOperationException("Workspace route ownership changed");
         foreach (var record in records.EnumerateArray())
             if (Matches(record, host, $"{id}.cfargotunnel.com"))
                 await Call(HttpMethod.Delete, $"{dns}/{record.GetProperty("id").GetString()}", ct);

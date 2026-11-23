@@ -48,10 +48,17 @@ internal sealed class TrueNasProvider(TrueNasConnection connection, NasSettings 
     {
         if (allocation.Name == allocation.Template) throw new InvalidOperationException("Allocation matches template");
         var guest = await FindAsync(rpc, "vm.query", "name", allocation.Name, ct);
-        if (guest == null && remove) return true;
         var template = await FindAsync(rpc, "vm.query", "name", allocation.Template, ct)
             ?? throw new InvalidOperationException("Template unavailable");
         var source = Disk(template, false);
+        var ownedDisk = source + "_" + allocation.Name;
+        async Task<bool> DiskRemovedAsync()
+        {
+            var choices = await rpc.CallAsync("vm.device.disk_choices", ct);
+            // The template must also be visible or an empty inventory proves nothing.
+            return choices.TryGetProperty(source, out _) && !choices.TryGetProperty(ownedDisk, out _);
+        }
+        if (guest == null && remove) return await DiskRemovedAsync();
         if (guest == null)
         {
             if (State(template) != "STOPPED") throw new InvalidOperationException("Template must be stopped");
@@ -66,9 +73,11 @@ internal sealed class TrueNasProvider(TrueNasConnection connection, NasSettings 
         var state = State(vm);
         if (remove)
         {
+            if (Disk(vm, true) != ownedDisk)
+                throw new InvalidOperationException("Refusing to remove a disk outside this allocation");
             if (state == "RUNNING") await rpc.CallAsync("vm.stop", ct, Id(vm));
             if (state != "STOPPED") return false;
-            return (await rpc.CallAsync("vm.delete", ct, Id(vm), new { zvols = true })).GetBoolean();
+            return (await rpc.CallAsync("vm.delete", ct, Id(vm), new { zvols = true })).GetBoolean() && await DiskRemovedAsync();
         }
         string path = $"{media}/{allocation.Name}.iso";
         var discs = Devices(vm).Where(d => Type(d) == "CDROM").ToArray();

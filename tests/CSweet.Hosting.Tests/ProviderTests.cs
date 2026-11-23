@@ -14,6 +14,8 @@ public class ProviderTests
     {
         public List<string> Calls { get; } = [];
         public bool Shared { get; set; }
+        public bool OrphanDisk { get; set; }
+        public bool ForeignDisk { get; set; }
         private bool cloned, running;
         private string? seed;
         public Task<JsonElement> CallAsync(string method, CancellationToken ct, params object[] parameters)
@@ -21,7 +23,8 @@ public class ProviderTests
             Calls.Add(method);
             object Vm(bool template)
             {
-                var path = template || Shared ? "/dev/zvol/p/template" : "/dev/zvol/p/clone";
+                var path = template || Shared ? "/dev/zvol/p/template" :
+                    ForeignDisk ? "/dev/zvol/p/template_other" : "/dev/zvol/p/template_hqfixture";
                 List<object> devices = [new { attributes = new { dtype = "DISK", path } }];
                 if (!template && seed != null) devices.Add(new { attributes = new { dtype = "CDROM", path = seed } });
                 return new { id = template ? 1 : 2, status = new { state = !template && running ? "RUNNING" : "STOPPED" }, devices };
@@ -32,6 +35,11 @@ public class ProviderTests
                 case "vm.query":
                     var template = (string)((object[][])parameters[0])[0][2] == "ubuntu";
                     result = template || cloned ? new[] { Vm(template) } : Array.Empty<object>();
+                    break;
+                case "vm.device.disk_choices":
+                    var disks = new Dictionary<string,string> { ["/dev/zvol/p/template"] = "p/template" };
+                    if (cloned || OrphanDisk) disks["/dev/zvol/p/template_hqfixture"] = "p/template_hqfixture";
+                    result = disks;
                     break;
                 case "vm.clone": cloned = true; throw new IOException("Lost reply");
                 case "vm.device.create":
@@ -61,10 +69,34 @@ public class ProviderTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => Run(true));
         Assert.DoesNotContain("vm.delete", rpc.Calls);
         rpc.Shared = false;
+        rpc.ForeignDisk = true;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Run(true));
+        Assert.DoesNotContain("vm.delete", rpc.Calls);
+        rpc.ForeignDisk = false;
         Assert.False(await Run(true));
         Assert.True(await Run(true));
         Assert.True(await Run(true));
         Assert.Single(rpc.Calls, m => m == "vm.delete");
+        rpc.OrphanDisk = true;
+        Assert.False(await Run(true));
+    }
+
+    [Fact]
+    public void Cleanup_removes_this_orders_seed_generations_only()
+    {
+        var dir = Directory.CreateTempSubdirectory();
+        try
+        {
+            string[] mine = ["hqone.iso", "hqone-release-0123456789ab.iso", "hqone-before-abcdef012345.iso", ".hqone-87413230be384fe78443656d035457ef.tmp"];
+            string[] others = ["hqone2.iso", "hqone2-before-abcdef012345.iso", "ubuntu.iso"];
+            foreach (var file in mine.Concat(others)) File.WriteAllText(Path.Combine(dir.FullName, file), "fixture");
+            var seeds = new SeedMedia(dir.FullName);
+            seeds.Remove("hqone");
+            seeds.Remove("hqone");
+            Assert.All(mine, name => Assert.False(File.Exists(Path.Combine(dir.FullName, name))));
+            Assert.All(others, name => Assert.True(File.Exists(Path.Combine(dir.FullName, name))));
+        }
+        finally { dir.Delete(true); }
     }
 
     private sealed class Handler(Func<HttpRequestMessage,HttpResponseMessage> reply) : HttpMessageHandler

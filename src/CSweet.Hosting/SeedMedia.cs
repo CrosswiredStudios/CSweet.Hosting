@@ -5,7 +5,25 @@ namespace CSweet.Hosting;
 
 internal sealed class SeedMedia(string media)
 {
-    public void Remove(string name) => File.Delete(Path.Combine(media, name + ".iso"));
+    public void Remove(string name)
+    {
+        File.Delete(Path.Combine(media, name + ".iso"));
+        foreach (var path in Directory.EnumerateFiles(media, $".{name}-*.tmp"))
+        {
+            var suffix = Path.GetFileNameWithoutExtension(path)[(name.Length + 2)..];
+            if (Guid.TryParseExact(suffix, "N", out _)) File.Delete(path);
+        }
+        // In-place upgrades can leave archived or staged seed images containing the same credentials.
+        foreach (var kind in new[] { "before", "release" })
+        {
+            var prefix = $"{name}-{kind}-";
+            foreach (var path in Directory.EnumerateFiles(media, prefix + "*.iso"))
+            {
+                var digest = Path.GetFileNameWithoutExtension(path)[prefix.Length..];
+                if (digest.Length == 12 && digest.All(char.IsAsciiHexDigitLower)) File.Delete(path);
+            }
+        }
+    }
 
     internal static string? LocalImageTag(string release)
     {

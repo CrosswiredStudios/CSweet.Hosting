@@ -79,7 +79,7 @@ If setup stalls, check the Market payment status, provisioner logs, VM state, th
 
 ## Retire a disposable test deployment
 
-The authenticated private `DELETE /v1/deployments/{orderId}` removes that guest and its private disk, per-order Cloudflare route and seed ISO. This destroys its data. Use the exact disposable test order ID. Repeat until 204 (202 means in progress; 409 means the current operation must finish). The retired order cannot recreate the VM. Handle the Stripe test subscription separately. The stored Market ready link is historical after operator retirement. Retain the provisioner's `hosting-state` volume across deployments. Removing it loses ownership and recovery records. The service supports multiple independent orders; the operator controls lab capacity.
+Market requests retirement once Stripe confirms the subscription has ended. Its authenticated `DELETE /v1/deployments/{orderId}` returns 202 while the worker removes the tenant VM, checks its dedicated disk, removes its seed media, and releases its Cloudflare DNS record and tunnel. A 204 confirms retirement. A durable order ID marker rejects any late provisioning request, including an order canceled before the first PUT. A new order gets a new deployment. Direct operator retirement is destructive and handles hosting resources only. Use Market to coordinate billing for a purchased workspace.
 
 ## Provider boundary and tests
 
