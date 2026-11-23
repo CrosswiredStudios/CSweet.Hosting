@@ -21,7 +21,7 @@ services:
       TRUENAS_USERNAME: ${TRUENAS_USERNAME:-csweet_hosting}
       NAS_MEDIA_PATH: ${NAS_MEDIA_PATH:?Set the NAS media path}
       CF_ACCOUNT_ID: ${HOSTING_CF_ACCOUNT_ID:?Set the Cloudflare account ID}
-      CF_ZONE_ID: ${HOSTING_CF_ZONE_ID:?Set the c-sweet.com zone ID}
+      CF_ZONE_ID: ${HOSTING_CF_ZONE_ID:?Set the c-sweet.app zone ID}
     secrets: [service_key, nas_ca, nas_key, cf_token]
     volumes:
       - state:/state
