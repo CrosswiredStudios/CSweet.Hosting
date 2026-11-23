@@ -403,5 +403,6 @@ FodyWeavers.xsd
 # Local operator settings and saved API test requests
 /private/
 /secrets/
+/registry/
 /hosting.env
 /hosting-test-order.json

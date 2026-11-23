@@ -7,6 +7,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
     <EmbeddedResource Include="../../linux/bootstrap.*" LogicalName="linux.%(Filename)%(Extension)" />
+    <None Include="../../deploy/create-seed.sh" Link="create-seed.sh" CopyToOutputDirectory="PreserveNewest" />
     <InternalsVisibleTo Include="CSweet.Hosting.Tests" />
   </ItemGroup>
 </Project>

@@ -26,6 +26,10 @@ services:
     volumes:
       - state:/state
       - type: bind
+        source: ./registry
+        target: /run/hosting-registry
+        read_only: true
+      - type: bind
         source: ${MAC_MEDIA_PATH:?Mount the NAS media share}
         target: /media/csweet
         bind:

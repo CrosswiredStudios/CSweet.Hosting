@@ -72,9 +72,11 @@ for alias, suffix in names.items():
                    Installation__ReservedOwnerSubject=d["owner"],Installation__DeploymentId=d["deployment"],
                    Installation__Release=d["release"],Installation__Hostname=d["hostname"],Installation__ReadinessKey=d["proofKey"])
     volumes[alias]={}
-    services[alias]={"image":d["release"], "command":["/srv/"+app+"/"+app+".dll"],
+    services[alias]={"image":os.environ.get("CSWEET_LOCAL_HQ_IMAGE", d["release"]), "command":["/srv/"+app+"/"+app+".dll"],
                      "working_dir":"/srv/"+app, "environment":env, "volumes":[alias+":/state"],
                      "restart":"no" if alias=="migrate" else "unless-stopped"}
+    if "CSWEET_LOCAL_HQ_IMAGE" in os.environ:
+        services[alias]["pull_policy"] = "never"
 services["api"]["ports"]=["127.0.0.1:8181:8181"]
 services["connector"]={"image":"cloudflare/cloudflared:latest","restart":"unless-stopped","network_mode":"service:api",
                        "environment":{"TUNNEL_TOKEN":d["tunnelToken"]},"command":["tunnel","--no-autoupdate","run"]}

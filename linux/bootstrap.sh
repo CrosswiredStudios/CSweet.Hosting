@@ -9,6 +9,18 @@ fi
 systemctl enable --now docker
 install -d -m 0700 /var/lib/csweet-bootstrap
 cd /var/lib/csweet-bootstrap
+if [[ -f /opt/csweet-hosting/local-image ]]; then
+  CSWEET_LOCAL_HQ_IMAGE=$(cat /opt/csweet-hosting/local-image)
+  export CSWEET_LOCAL_HQ_IMAGE
+  if ! docker image inspect "$CSWEET_LOCAL_HQ_IMAGE" >/dev/null 2>&1; then
+    media=$(mktemp -d)
+    trap 'mountpoint -q "$media" && umount "$media"; rmdir "$media"' EXIT
+    mount -o ro,nosuid,nodev,noexec /dev/disk/by-label/cidata "$media"
+    (cd "$media" && sha256sum -c headquarters.sha256)
+    docker load --input "$media/headquarters.tar"
+    docker image inspect "$CSWEET_LOCAL_HQ_IMAGE" >/dev/null
+  fi
+fi
 python3 /opt/csweet-hosting/bootstrap.py
 docker compose -f compose.json up -d --wait postgres
 docker compose -f compose.json run --rm migrate

@@ -8,7 +8,7 @@ bundle=$(cd "$(dirname "$0")" && pwd)
 for file in hosting-service-key.txt hosting-nas-ca.pem hosting-nas-key.txt hosting-cloudflare-token.txt; do
   [[ -s "$root/secrets/$file" ]] || { echo "Missing secrets/$file" >&2; exit 1; }
 done
-mkdir -p "$root/releases"
+mkdir -p "$root/releases" "$root/registry"
 mkdir "$root/.deploy-lock" || { echo 'Another deployment owns .deploy-lock.' >&2; exit 1; }
 trap 'rmdir "$root/.deploy-lock"' EXIT
 version_pattern='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
