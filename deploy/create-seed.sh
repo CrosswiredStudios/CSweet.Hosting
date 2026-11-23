@@ -21,7 +21,7 @@ if [[ $# == 2 ]]; then
       auth=/run/hosting-registry/auth.json
       opts=()
       if [[ -f "$auth" ]]; then opts+=(--src-authfile "$auth"); fi
-      TMPDIR="$stage" skopeo --override-os linux --override-arch amd64 copy "${opts[@]}" \
+      skopeo --tmpdir "$stage" --override-os linux --override-arch amd64 copy "${opts[@]}" \
         "docker://$release" "docker-archive:$stage/headquarters.tar:$tag" >&2
       (cd "$stage" && sha256sum headquarters.tar > headquarters.sha256)
       if [[ -d "$dir" ]]; then rm -rf -- "$dir"; fi
