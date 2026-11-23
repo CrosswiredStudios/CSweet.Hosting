@@ -105,7 +105,7 @@ public class DeploymentTests
             var ready = await (await market.PutAsJsonAsync(path, request)).Content.ReadFromJsonAsync<JsonElement>();
             Assert.Equal(id, ready.GetProperty("orderId").GetGuid());
             Assert.Equal("Ready", ready.GetProperty("state").GetString());
-            Assert.Equal($"https://hq-{id:N}.csweet.app/", ready.GetProperty("workspaceUrl").GetString());
+            Assert.Equal($"https://hq-{id:N}.c-sweet.com/", ready.GetProperty("workspaceUrl").GetString());
             Assert.Equal(HttpStatusCode.Accepted, (await market.DeleteAsync(path)).StatusCode);
             await reconciler.ReconcileAsync(id, default);
             Assert.True(original.Removed);

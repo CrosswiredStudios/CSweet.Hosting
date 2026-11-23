@@ -99,7 +99,7 @@ public class ProviderTests
     {
         var digest = new string('a', 64);
         var release = "ghcr.io/crosswiredstudios/csweet-headquarters-hosted@sha256:" + digest;
-        var guest = new GuestBootstrap("id", "buyer", "hq-test.csweet.app", release, "proof", "tenant-token");
+        var guest = new GuestBootstrap("id", "buyer", "hq-test.c-sweet.com", release, "proof", "tenant-token");
         var data = JsonSerializer.Deserialize<JsonElement>(SeedMedia.UserData(guest).Split('\n', 2)[1]);
         var files = data.GetProperty("write_files").EnumerateArray().ToArray();
         var local = files.Single(f => f.GetProperty("path").GetString() == "/opt/csweet-hosting/local-image");
@@ -117,7 +117,7 @@ public class ProviderTests
         try
         {
             var seed = new SeedMedia(dir.FullName);
-            var guest = new GuestBootstrap(Guid.NewGuid().ToString(), "buyer", "hq-test.csweet.app", "digest", "proof", "tenant-token");
+            var guest = new GuestBootstrap(Guid.NewGuid().ToString(), "buyer", "hq-test.c-sweet.com", "digest", "proof", "tenant-token");
             await seed.WriteAsync("hqfixture", guest, default);
             async Task<string> Read(string filename)
             {
