@@ -10,7 +10,7 @@ internal sealed record Deployment(Purchase Purchase, string Pool, string Templat
     string Name, string ProofKey, string Phase)
 {
     public Guid Id => Purchase.OrderId;
-    public string Host => $"hq-{Id:N}.csweet.app";
+    public string Host => $"hq-{Id:N}.c-sweet.com";
 }
 
 internal sealed record ReleaseTarget(string Pool, string Template, string Image);
