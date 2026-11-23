@@ -57,7 +57,7 @@ do {
         $receipt = $result.Content | ConvertFrom-Json
         if ([guid]$receipt.orderId -ne $id) { throw 'Mismatched order.' }
         if ($receipt.state -ceq 'Ready') {
-            $expected = 'https://hq-' + $id.ToString('N') + '.c-sweet.com/'
+            $expected = 'https://hq-' + $id.ToString('N') + '.c-sweet.app/'
             if ($receipt.workspaceUrl -cne $expected) { throw 'Unexpected workspace URL.' }
             Write-Output "Ready $expected"
             return
