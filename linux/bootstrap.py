@@ -9,6 +9,7 @@ import secrets
 import subprocess
 import sys
 import time
+import uuid
 from urllib.request import urlopen, Request
 
 d = json.loads(Path(os.environ.get("CSWEET_DEPLOYMENT_FILE", "/etc/csweet-hosting/deployment.json")).read_text())
@@ -68,6 +69,8 @@ for alias, suffix in names.items():
         env["CSweet__ExecutionGateway__AssignmentSigningPrivateKeyPkcs8Base64"] = keys["assignment"]
     if alias == "api":
         env.update(ASPNETCORE_URLS="http://+:8181", Installation__ServePackagedWeb="true",
+                   MobileRelay__Enabled="true", MobileRelay__Origin="https://mobile.c-sweet.app/",
+                   MobileRelay__RouteId="hq-" + uuid.UUID(d["deployment"]).hex, MobileShell__WebRoot="/srv/web",
                    Installation__LinkingEnabled="true",Installation__Issuer="https://account.c-sweet.com/",
                    Installation__ReservedOwnerSubject=d["owner"],Installation__DeploymentId=d["deployment"],
                    Installation__Release=d["release"],Installation__Hostname=d["hostname"],Installation__ReadinessKey=d["proofKey"])
